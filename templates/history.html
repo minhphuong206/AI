@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Lịch Sử Chấm Công</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; text-align: center; }
+        .header { background-color: #2c3e50; color: white; padding: 15px; }
+        .nav-btn { display: inline-block; margin-top: 10px; padding: 10px 20px; background-color: #e74c3c; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;}
+        table { margin: 30px auto; border-collapse: collapse; width: 60%; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 15px; font-size: 18px;}
+        th { background-color: #27ae60; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f1f1; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Lịch Sử Chấm Công</h1>
+        <a href="javascript:window.close();" class="nav-btn">Đóng Tab</a>
+    </div>
+
+    <table>
+        <tr>
+            <th>Tên Nhân Viên</th>
+            <th>Thời Gian Chấm Công</th>
+        </tr>
+        {% for log in logs %}
+        <tr>
+            <td><strong>{{ log[0] }}</strong></td>
+            <td>{{ log[1] }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="2">Chưa có ai chấm công ngày hôm nay.</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
