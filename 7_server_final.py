@@ -56,7 +56,12 @@ def generate_frames():
                 cv2.putText(frame, "CHUA DUOC HUAN LUYEN", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
                 continue
 
-            face_roi = gray_frame[y:y+h, x:x+w]
+            # --- KỸ THUẬT CẮT SÁT CỐT KHI QUÉT ---
+            my = int(h * 0.15)
+            mx = int(w * 0.15)
+            face_roi = gray_frame[y+my:y+h-my, x+mx:x+w-mx]
+            # ------------------------------------
+
             resized_face = cv2.resize(face_roi, (64, 64))
             reshaped_face = np.reshape(resized_face.astype('float32') / 255.0, (1, 64, 64, 1))
 
@@ -64,7 +69,8 @@ def generate_frames():
             class_index = np.argmax(predictions)
             confidence = np.max(predictions)
 
-            if confidence >= 0.90:
+            # NGƯỠNG 95% CHẶN NGƯỜI LẠ
+            if confidence >= 0.98:
                 if CATEGORIES[class_index] == 'nguoi_la':
                     label, color = f"Nguoi la ({confidence*100:.1f}%)", (0, 0, 255)
                 else:
@@ -80,6 +86,9 @@ def generate_frames():
                             csv.writer(f).writerow([name, time_str])
                         last_logged[name] = now
                         latest_log = {"name": name, "time": time_str, "status": "success"}
+                    else:
+                        # BÁO TRẠNG THÁI ĐỂ KÍCH HOẠT ÂM THANH
+                        latest_log = {"name": name, "time": "", "status": "already_logged"}
             else:
                 label, color = f"Nguoi la ({confidence*100:.1f}%)", (0, 0, 255)
                 
@@ -104,8 +113,13 @@ def process_and_augment(b64_string, output_dir):
     
     if len(faces) == 0: return False # Không thấy mặt
     
+    # --- KỸ THUẬT CẮT SÁT CỐT LÚC LƯU ẢNH ---
     x, y, w, h = faces[0]
-    face_roi = gray[y:y+h, x:x+w]
+    my = int(h * 0.15)
+    mx = int(w * 0.15)
+    face_roi = gray[y+my:y+h-my, x+mx:x+w-mx] 
+    # ----------------------------------------
+    
     base_face = cv2.resize(face_roi, (64, 64))
 
     os.makedirs(output_dir, exist_ok=True)
@@ -128,7 +142,7 @@ def add_employee():
     name = data['name'].replace(" ", "_") # Chuyển dấu cách thành _ cho tên thư mục
     images = data['images']
     
-    # Xử lý 3 góc
+    # Xử lý các góc
     for angle_name, b64_img in images.items():
         out_dir = os.path.join(DATASET_DIR, name, angle_name)
         if not process_and_augment(b64_img, out_dir):
@@ -189,7 +203,6 @@ def index(): return render_template('index.html')
 @app.route('/admin')
 def admin(): return render_template('admin.html')
 
-# === BẮT ĐẦU ĐOẠN CODE BỔ SUNG ===
 @app.route('/history')
 def history():
     logs = []
@@ -200,7 +213,6 @@ def history():
             logs = list(reader)
     logs.reverse()
     return render_template('history.html', logs=logs)
-# === KẾT THÚC ĐOẠN CODE BỔ SUNG ===
 
 @app.route('/video_feed')
 def video_feed(): return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
@@ -209,7 +221,9 @@ def video_feed(): return Response(generate_frames(), mimetype='multipart/x-mixed
 def check_status():
     global latest_log
     current_log = latest_log.copy()
-    if latest_log["status"] == "success": latest_log["status"] = "waiting"
+    # RESET TRẠNG THÁI CHO CẢ CHẤM THÀNH CÔNG VÀ CHẤM TRÙNG
+    if latest_log["status"] == "success" or latest_log["status"] == "already_logged": 
+        latest_log["status"] = "waiting"
     return jsonify(current_log)
 
 if __name__ == '__main__':
